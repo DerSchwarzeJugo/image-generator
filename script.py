@@ -3,22 +3,10 @@ from PIL import Image, ImageChops, ImageFilter
 from os import walk, listdir
 from os.path import isfile
 import random
+import itertools
 
 
 # imageBg = "/mnt/c/Users/der_p/gimpProjects/FatPlat1/Backgrounds/020.png"
-# imageHa = "/mnt/c/Users/der_p/gimpProjects/FatPlat1/HandAcc/016.png"
-# imageMa = "/mnt/c/Users/der_p/gimpProjects/FatPlat1/MouthAcc/012.png"
-# imageBo = "/mnt/c/Users/der_p/gimpProjects/FatPlat1/Body/008.png"
-
-# bg = Image.open(imageBg)
-# ha = Image.open(imageHa)
-# ma = Image.open(imageMa)
-# bo = Image.open(imageBo)
-
-# bg.paste(ha, (0,0), ha)
-# bg.paste(ma, (0,0), ma)
-# bg.paste(bo, (0,0), bo)
-# bg.save("bg.png")
 
 def main():
 	providedPath = input("Absolute path to your directory containing the images: ")
@@ -29,12 +17,15 @@ def main():
 
 	dirnames = createDirectoryStructure(providedPath)
 
+	# create some basic variables
 	layers = len(dirnames)
 	images = createImgList(dirnames, providedPath)
 	possibilities = len(images[0]["images"])
+
 	# ** equals to the power (possibilities^layers)
 	possibleImages = possibilities ** layers
 
+	# give user some output
 	print("Index:")
 	print("layers: {} \npossibilities: {} \npossibleImages: {}\n".format(layers, possibilities, possibleImages ))
 
@@ -43,6 +34,7 @@ def main():
 
 	orderedImages = orderArray(layerOrdering, images)
 
+	# Ask for additional input which is needed
 	imageName = input("How would you like to name your images? (Format will be NAME #ID) ")
 
 	randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
@@ -51,14 +43,16 @@ def main():
 		randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
 	if int(randomOrAll) == 0:
 		# create all possible combinations of the image
-		createAllImgs(orderedImages)
+		createAllImgs(orderedImages, imageName, possibleImages)
 	else:
 		# create only a given amount of random images
 		imageAmount = input("How many images would you like to generate? ")
-		while int(imageAmount) <= 0 and int(imageAmount) >= possibleImages:
+		while int(imageAmount) > 0 and int(imageAmount) <= possibleImages:
+			createRandomImgs(imageAmount, orderedImages, imageName)
+			break
+		else:
 			print("You are either choosing more images than possible or an impossible number!")
 			imageAmount = input("How many images would you like to generate? ")
-		createRandomImgs(imageAmount, orderedImages, imageName)
 
 
 # create a specific amount of random nonduplicate images
@@ -69,7 +63,7 @@ def createRandomImgs(imageAmount, orderedImages, imageName):
 		innerList = []	
 		for layer in orderedImages:
 			randomImg = random.sample(layer["images"], 1)
-			innerList.append(Image.open(randomImg[0]["path"]))
+			innerList.append(randomImg[0]["path"])
 		imagesArr.append(innerList)
 	
 	id = 0
@@ -77,13 +71,40 @@ def createRandomImgs(imageAmount, orderedImages, imageName):
 		innerName = imageName + " #" + "{}".format(id)
 		layerAndSaveImg(image, innerName)
 		id = id + 1
+	exit("{} images were generated to folder generatedImgs".format(imageAmount))
 
 
 
 # create all possible images
-def createAllImgs(orderedImages):
-	pass
+def createAllImgs(orderedImages, imageName, possibleImages):
+	print("There are {} possible images. This might take a while".format(possibleImages))
+	allLists = []
+	for layer in orderedImages:	
+		allLists.append(layer["images"])
 
+	# get all possible combinations
+	allCombinations = list(itertools.product(*allLists))
+	id = 0
+	if (len(allCombinations) == possibleImages):
+		# create array of all links only
+		imagesArr = []
+		for image in allCombinations:
+			innerList = []
+			for innerImage in image:
+				innerList.append(innerImage["path"])
+			imagesArr.append(innerList)
+		
+		# shuffle array for non linear output
+		random.shuffle(imagesArr)
+		# iterate over array and create images
+		for image in imagesArr:
+			innerName = imageName + " #" + "{}".format(id)
+			layerAndSaveImg(image, innerName)
+			id = id + 1	
+
+	else:
+		print("Something went wrong!")
+	exit("{} images were generated to folder generatedImgs".format(id + 1))
 
 # create ordered array
 def orderArray(layerOrdering, images):
@@ -139,10 +160,11 @@ def createImgList(dirnames, providedPath):
 
 # adds all the layers together in correct order and saves the image
 def layerAndSaveImg(imgList, imgName):
-	bg = imgList[0]
+	bg = Image.open(imgList[0])
 	for item in imgList:
 		if item != imgList[0]:
-			bg.paste(item, (0,0), item)
+			openItem = Image.open(item)
+			bg.paste(openItem, (0,0), openItem)
 	bg.save("generatedImgs/" + imgName + ".png")
 	print("Image {} generated".format(imgName))
 
