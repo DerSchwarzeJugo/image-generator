@@ -19,8 +19,26 @@ from os.path import isfile
 # bg.paste(bo, (0,0), bo)
 # bg.save("bg.png")
 
+def main():
+	providedPath = input("Provide the absolute path to your directory containing the images: ")
+
+	# check if last character is a slash
+	if providedPath[-1] != '/':
+		providedPath = providedPath + "/"
+
+	dirnames = createDirectoryStructure(providedPath)
+
+	layers = len(dirnames)
+	images = createImgList(dirnames, providedPath)
+	possibilities = len(images[0]["images"])
+	# ** equals to the power (possibilities^layers)
+	possibleImages = possibilities ** layers
+
+	print("layers: {} \npossibilities: {} \npossibleImages: {}".format(layers, possibilities, possibleImages ))
+
+
+# create list of directories and files of the provided path
 def createDirectoryStructure(providedPath):
-	# create list of directories and files of the provided path
 	f = []
 	for (dirpath, dirnames, filenames) in walk(providedPath):
 		f.extend(filenames)
@@ -28,7 +46,7 @@ def createDirectoryStructure(providedPath):
 	return dirnames
 
 # create subLists of the images in every directory
-def createImgList(dirnames):
+def createImgList(dirnames, providedPath):
 	images = []
 	for directory in dirnames:
 		tempDict = {
@@ -55,23 +73,7 @@ def layerImg(imgList):
 			bg.paste(item, (0,0), item)
 	bg.save("bg.png")
 
-# Program Starts here
 
-providedPath = input("Provide the absolute path to your directory containing the images: ")
-
-# check if last character is a slash
-if providedPath[-1] != '/':
-	providedPath = providedPath + "/"
-
-dirnames = createDirectoryStructure(providedPath)
-
-layers = len(dirnames)
-images = createImgList(dirnames)
-possibilities = len(images[0]["images"])
-# ** equals to the power (possibilities^layers)
-possibleImages = possibilities ** layers
-
-print("layers: {} \npossibilities: {} \npossibleImages: {}".format(layers, possibilities, possibleImages ))
-
-
-
+# init the main function
+if __name__ == "__main__":
+	main()
