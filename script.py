@@ -59,13 +59,19 @@ def main():
 	orderedImages = orderArray(layerOrdering, images)
 
 	global imageName
+	global imageDesc
+	global baseUrl
 	# only do this actions if no configuration is provided
 	if configLoaded == False:
 		# Ask for additional input which is needed
 		imageName = input("How would you like to name your images? (Format will be NAME #ID) ")
 		# Ask for other Meta Data aswell here
+		imageDesc = input("Give your images a description: ")
+		baseUrl = input("Provide a base URL for your images: ")
 	else:
 		imageName = loadConfig["name"]
+		imageDesc = loadConfig["desc"]
+		baseUrl = loadConfig["url"]
 
 
 	# Ask for config backup
@@ -74,11 +80,13 @@ def main():
 	if saveConfig.lower() == "y" or saveConfig.lower() == "yes" or saveConfig.lower() == "":
 		saveJsonConfig({
 			"name": imageName,
+			"desc": imageDesc,
+			"url": baseUrl,
 			"path": providedPath,
 			"layerOrdering": layerOrdering
 		})
 
-	randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
+	randomOrAll = input("Generate all possible images (0) or specific amount of random non-duplicates (1)? ")		
 
 	# setup var for time measurement
 	global start_time
