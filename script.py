@@ -95,23 +95,27 @@ def createAllImgs(orderedImages, imageName, possibleImages):
 
 	# get all possible combinations
 	allCombinations = list(itertools.product(*allLists))
-	id = 0
+	# shuffle array for non linear output
+	random.shuffle(allCombinations)
 	if (len(allCombinations) == possibleImages):
 		# create array of all links only
 		imagesArr = []
+		id = 0
 		for image in allCombinations:
 			innerList = []
 			for innerImage in image:
 				innerList.append(innerImage["path"])
+				innerList.append(id)
+			id = id + 1
 			imagesArr.append(innerList)
 		
-		# shuffle array for non linear output
-		random.shuffle(imagesArr)
-		id = createImgFromPath(imagesArr, imageName)	
+		# implement some multiprocessing to speed up things
+		with concurrent.futures.ProcessPoolExecutor() as executor:
+			res = executor.map(layerAndSaveImg, imagesArr)	
 
 	else:
 		print("Something went wrong!")
-	exit("{} images were generated to folder generatedImgs".format(id + 1))
+	exit("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
 
 # create ordered array
 def orderArray(layerOrdering, images):
