@@ -1,12 +1,11 @@
-from matplotlib import pyplot as plt
-from PIL import Image, ImageChops, ImageFilter
-from os import walk, listdir
+from PIL import Image
+from os import walk, listdir, cpu_count 
 from os.path import isfile
 import random
 import itertools
+from multiprocessing import Process, Pool
+import concurrent.futures
 
-
-# imageBg = "/mnt/c/Users/der_p/gimpProjects/FatPlat1/Backgrounds/020.png"
 
 def main():
 	providedPath = input("Absolute path to your directory containing the images: ")
@@ -35,43 +34,55 @@ def main():
 	orderedImages = orderArray(layerOrdering, images)
 
 	# Ask for additional input which is needed
+	global imageName
 	imageName = input("How would you like to name your images? (Format will be NAME #ID) ")
 
 	randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
+
 
 	while int(randomOrAll) != 0 and int(randomOrAll) != 1:
 		randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
 	if int(randomOrAll) == 0:
 		# create all possible combinations of the image
 		createAllImgs(orderedImages, imageName, possibleImages)
+		
+		# * unpacks the result of range
+		idList = [*range(possibleImages - 1)]
 	else:
 		# create only a given amount of random images
 		imageAmount = input("How many images would you like to generate? ")
 		while int(imageAmount) > 0 and int(imageAmount) <= possibleImages:
 			createRandomImgs(imageAmount, orderedImages, imageName)
+
 			break
 		else:
 			print("You are either choosing more images than possible or an impossible number!")
 			imageAmount = input("How many images would you like to generate? ")
 
 
+
 # create a specific amount of random nonduplicate images
 def createRandomImgs(imageAmount, orderedImages, imageName):
 	imageAmount = int(imageAmount)
 	imagesArr = []
+	id = 0
+	# iterate as long as imagesArr has same amount as wished by user
 	while len(imagesArr) < imageAmount:
 		innerList = []	
+		# iterate over all layers and add their path and id
 		for layer in orderedImages:
 			randomImg = random.sample(layer["images"], 1)
 			innerList.append(randomImg[0]["path"])
+			innerList.append(id)
+		id = id + 1
 		imagesArr.append(innerList)
 	
-	id = 0
-	for image in imagesArr:
-		innerName = imageName + " #" + "{}".format(id)
-		layerAndSaveImg(image, innerName)
-		id = id + 1
-	exit("{} images were generated to folder generatedImgs".format(imageAmount))
+	# implement some multiprocessing to speed up things
+	with concurrent.futures.ProcessPoolExecutor() as executor:
+		res = executor.map(layerAndSaveImg, imagesArr)
+
+	# max(list(res)) --> gets highest of the values in the returned list
+	exit("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
 
 
 
@@ -96,11 +107,7 @@ def createAllImgs(orderedImages, imageName, possibleImages):
 		
 		# shuffle array for non linear output
 		random.shuffle(imagesArr)
-		# iterate over array and create images
-		for image in imagesArr:
-			innerName = imageName + " #" + "{}".format(id)
-			layerAndSaveImg(image, innerName)
-			id = id + 1	
+		id = createImgFromPath(imagesArr, imageName)	
 
 	else:
 		print("Something went wrong!")
@@ -159,14 +166,21 @@ def createImgList(dirnames, providedPath):
 	return images
 
 # adds all the layers together in correct order and saves the image
-def layerAndSaveImg(imgList, imgName):
+# imgList equals a list of paths of the combined images
+def layerAndSaveImg(imgList):
+	global imageName
+	# get last element which is id
+	id = imgList[len(imgList) - 1]  
+	imgName = imageName + " #" + str(id)
 	bg = Image.open(imgList[0])
 	for item in imgList:
-		if item != imgList[0]:
+		# filter out first and last element, corresponding to background and id
+		if item != imgList[0] and item != id:
 			openItem = Image.open(item)
 			bg.paste(openItem, (0,0), openItem)
 	bg.save("generatedImgs/" + imgName + ".png")
 	print("Image {} generated".format(imgName))
+	return id
 
 
 # init the main function
