@@ -1,18 +1,33 @@
 from PIL import Image
-from os import walk, listdir, cpu_count 
+from os import walk, listdir
 from os.path import isfile
 import random
 import itertools
-from multiprocessing import Process, Pool
 import concurrent.futures
+import json
+import sys
 
 
 def main():
-	providedPath = input("Absolute path to your directory containing the images: ")
+	# Check for a provided config backup
+	configLoaded = False
+	if len(sys.argv) > 1:
+		loadConfigPath = str(sys.argv[1])
+		if (isfile(loadConfigPath)):
+			loadConfig = loadJsonConfig(loadConfigPath)
+			configLoaded = True
+		else:
+			exit("{} is not a file!".format(loadConfigPath))
 
-	# check if last character is a slash
-	if providedPath[-1] != '/':
-		providedPath = providedPath + "/"
+	# only do this actions if no configuration is provided
+	if configLoaded == False:
+		providedPath = input("Absolute path to your directory containing the images: ")
+
+		# check if last character is a slash
+		if providedPath[-1] != '/':
+			providedPath = providedPath + "/"
+	else:
+		providedPath = loadConfig["path"]
 
 	dirnames = createDirectoryStructure(providedPath)
 
@@ -28,14 +43,39 @@ def main():
 	print("Index:")
 	print("layers: {} \npossibilities: {} \npossibleImages: {}\n".format(layers, possibilities, possibleImages ))
 
-	layerOrdering = setupLayerOrdering(layers, dirnames)
+	# only do this actions if no configuration is provided or changes in layering were made
+	if configLoaded == False or len(loadConfig["layerOrdering"]) != layers:
+		layerOrdering = setupLayerOrdering(layers, dirnames)
+	else:
+		reOrder = input("Would you like to reorder your layers? (y/N) ")
+		if reOrder.lower() == "y" or reOrder.lower() == "yes":
+			layerOrdering = setupLayerOrdering(layers, dirnames)
+		else:
+			layerOrdering = loadConfig["layerOrdering"]
+
 	print("Layer list: {}\n".format(layerOrdering))
 
 	orderedImages = orderArray(layerOrdering, images)
 
-	# Ask for additional input which is needed
 	global imageName
-	imageName = input("How would you like to name your images? (Format will be NAME #ID) ")
+	# only do this actions if no configuration is provided
+	if configLoaded == False:
+		# Ask for additional input which is needed
+		imageName = input("How would you like to name your images? (Format will be NAME #ID) ")
+		# Ask for other Meta Data aswell here
+	else:
+		imageName = loadConfig["name"]
+
+
+	# Ask for config backup
+	saveConfig = input("Would you like to save this config? (Y/n) ")
+
+	if saveConfig.lower() == "y" or saveConfig.lower() == "yes" or saveConfig.lower() == "":
+		saveJsonConfig({
+			"name": imageName,
+			"path": providedPath,
+			"layerOrdering": layerOrdering
+		})
 
 	randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
 
@@ -185,6 +225,20 @@ def layerAndSaveImg(imgList):
 	bg.save("generatedImgs/" + imgName + ".png")
 	print("Image {} generated".format(imgName))
 	return id
+
+
+# save the created config as json
+def saveJsonConfig(config):
+	path = "generatedConfigs/" + config["name"] + ".json"
+	with open(path, "w") as f:
+		json.dump(config, f, indent=4)
+
+
+# load a created config
+def loadJsonConfig(path):
+	with open(path, "r") as f:
+		data = json.load(f)
+	return data
 
 
 # init the main function
