@@ -84,7 +84,7 @@ def main():
 	global start_time
 
 	while int(randomOrAll) != 0 and int(randomOrAll) != 1:
-		randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
+		randomOrAll = input("Generate all possible images (0) or specific amount of random non-duplicates (1)? ")		
 	if int(randomOrAll) == 0:
 		# start timer
 		start_time = time.time()
@@ -119,8 +119,8 @@ def createRandomImgs(imageAmount, orderedImages, imageName):
 		innerList = []	
 		# iterate over all layers and add their path and id
 		for layer in orderedImages:
-			randomImg = random.sample(layer["images"], 1)
-			innerList.append(randomImg[0]["path"])
+			randomImg = random.choice(layer["images"])
+			innerList.append(randomImg["path"])
 			innerList.append(id)
 		id = id + 1
 		imagesArr.append(innerList)
