@@ -6,6 +6,7 @@ import itertools
 import concurrent.futures
 import json
 import sys
+import time
 
 
 def main():
@@ -79,26 +80,33 @@ def main():
 
 	randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
 
+	# setup var for time measurement
+	global start_time
 
 	while int(randomOrAll) != 0 and int(randomOrAll) != 1:
 		randomOrAll = input("Generate all possible images (0) or specific count of random nonduplicates (1)? ")		
 	if int(randomOrAll) == 0:
+		# start timer
+		start_time = time.time()
 		# create all possible combinations of the image
 		createAllImgs(orderedImages, imageName, possibleImages)
 		
-		# * unpacks the result of range
-		idList = [*range(possibleImages - 1)]
 	else:
 		# create only a given amount of random images
 		imageAmount = input("How many images would you like to generate? ")
 		while int(imageAmount) > 0 and int(imageAmount) <= possibleImages:
+			# start timer
+			start_time = time.time()
 			createRandomImgs(imageAmount, orderedImages, imageName)
-
 			break
 		else:
 			print("You are either choosing more images than possible or an impossible number!")
 			imageAmount = input("How many images would you like to generate? ")
+	end_time = time.time()
+	print("Total executiontime: --- {}s ---".format(round(end_time - start_time), 2))
 
+
+# functions
 
 
 # create a specific amount of random nonduplicate images
@@ -122,7 +130,7 @@ def createRandomImgs(imageAmount, orderedImages, imageName):
 		res = executor.map(layerAndSaveImg, imagesArr)
 
 	# max(list(res)) --> gets highest of the values in the returned list
-	exit("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
+	print("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
 
 
 
@@ -155,7 +163,7 @@ def createAllImgs(orderedImages, imageName, possibleImages):
 
 	else:
 		print("Something went wrong!")
-	exit("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
+	print("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
 
 # create ordered array
 def orderArray(layerOrdering, images):
