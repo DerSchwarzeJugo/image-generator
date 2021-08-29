@@ -1,12 +1,7 @@
-from PIL import Image
+from PIL import Image, ExifTags
 from os import walk, listdir
 from os.path import isfile
-import random
-import itertools
-import concurrent.futures
-import json
-import sys
-import time
+import random, itertools, concurrent.futures, json, sys, time
 
 
 def main():
