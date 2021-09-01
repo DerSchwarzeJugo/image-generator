@@ -14,6 +14,7 @@ def main():
 		if (isfile(loadConfigPath)):
 			loadConfig = loadJsonConfig(loadConfigPath)
 			configLoaded = True
+			print("Config loaded successfully!\n")
 		else:
 			exit("{} is not a file!".format(loadConfigPath))
 
@@ -47,7 +48,8 @@ def main():
 	# only do this actions if no configuration is provided or changes in layerinng or the images were made
 	if configLoaded == False or len(loadConfig["layerOrdering"]) != layers or loadConfig["possibleImages"] != possibleImages:
 		layerOrdering = setupLayerOrdering(layers, dirnames)
-		weightedList = createWeightedList(images)
+		orderedImages = orderArray(layerOrdering, images)
+		weightedList = createWeightedList(orderedImages)
 	else:
 		reOrder = input("Would you like to reorder your layers? (y/N) ")
 		if reOrder.lower() == "y" or reOrder.lower() == "yes":
@@ -55,15 +57,32 @@ def main():
 		else:
 			layerOrdering = loadConfig["layerOrdering"]
 
+		orderedImages = orderArray(layerOrdering, images)
 		reWeight = input("Would you like to change the weights on your images? (y/N) ")
 		if reWeight.lower() == "y" or reWeight.lower() == "yes":
-			weightedList = createWeightedList(images)
+			weightedList = createWeightedList(orderedImages)
 		else:
 			weightedList = loadConfig["weightedList"]
 
 	print("Layer order: {}\n".format(layerOrdering))
+	for cat in weightedList:
+		# iterate over to create total weighting
+		sumOfWeights = 0
+		for el, val in cat.items():
+			if el != "name" and el != "imageCount":
+				sumOfWeights += int(val)
+		# iterate again to print
+		print("Category: {}\nImageCount: {}".format(cat["name"], cat["imageCount"]))	
+		print("---")
+		for el,val in cat.items():
+			if el != "name" and el != "imageCount":
+				# get name from path
+				imgName = el.split("/")[-1]
+				percentage = round(int(val)/int(sumOfWeights) * 100, 2)
+				print("ImageName: {}\nWeight: {}\nPercent: {}%".format(imgName, int(val), percentage))
+				print("---")
+		print("--------------------------------")
 
-	orderedImages = orderArray(layerOrdering, images)
 
 	global imageName
 	global imageDesc
@@ -90,9 +109,9 @@ def main():
 			"desc": imageDesc,
 			"url": baseUrl,
 			"path": providedPath,
+			"possibleImages": possibleImages,
 			"layerOrdering": layerOrdering,
 			"weightedList": weightedList,
-			"possibleImages": possibleImages
 		})
 
 	print("--- 0 --- Generate All possible images")
@@ -200,12 +219,14 @@ def createAllImgs(orderedImages, possibleImages):
 # create a weighted list for the choosing of the images
 def createWeightedList(images):
 	# iterate over categories, show user the images and ask for a weight
-	print("Create weights for your images. You will need to pass one weight per image separately (element_weight / sum of all weights).")
+	print("Create weights for your images. You will need to pass one weight per image separately (element_weight / sum of all weights = percentage).")
 	weightList = [] 
 	for cat in images:
 		print("Category: {}".format(cat["name"]))
 		print("Images: {}".format(len(cat["images"])))
 		tempDict = {}
+		tempDict["name"] = cat["name"]
+		tempDict["imageCount"] = len(cat["images"])
 		for image in cat["images"]:
 			print(image["path"])
 			tempDict[image["path"]] = input("Give this image a weight: ")
