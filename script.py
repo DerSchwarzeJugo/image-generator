@@ -1,9 +1,9 @@
 # Image Generator
 # usage: python3 script.py, python3 script.py /path-to-config
-from PIL import Image, ExifTags
+from PIL import Image
 from os import walk, listdir
 from os.path import isfile
-import random, itertools, concurrent.futures, json, sys, time
+import random, itertools, concurrent.futures, json, sys, time, datetime
 
 
 def main():
@@ -165,17 +165,19 @@ def createRandomImgs(imageAmount, orderedImages):
 	imageAmount = int(imageAmount)
 	imagesArr = []
 	id = 0
-	# iterate as long as imagesArr has same amount as wished by user
+	# iterate as long until imagesArr has same amount as wished by user
 	while len(imagesArr) < imageAmount:
 		innerList = []	
 		# iterate over all layers and add their path and id
 		for layer in orderedImages:
 			randomImg = random.choice(layer["images"])
 			innerList.append(randomImg["path"])
-			innerList.append(id)
+		innerList.append(id)
 		id = id + 1
 		imagesArr.append(innerList)
-	
+
+	saveImgSetupJson(imagesArr)
+
 	# implement some multiprocessing to speed up things
 	with concurrent.futures.ProcessPoolExecutor() as executor:
 		res = executor.map(layerAndSaveImg, imagesArr)
@@ -183,6 +185,32 @@ def createRandomImgs(imageAmount, orderedImages):
 	# max(list(res)) --> gets highest of the values in the returned list
 	print("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
 
+# save generated imgArr to json output
+def saveImgSetupJson(imgArr):
+	global imageName
+	# make order in arr
+	generatedList = []
+	for image in imgArr:
+		id = image[len(image) - 1]
+		innerDict = {
+			"name": imageName + " #" + str(id),
+			"imgId": id, 
+		}
+		setupDict = {}
+		for innerImage in image:
+			if isinstance(innerImage, str):
+				# add category as key, and name as value for indexing
+				setupDict[innerImage.split("/")[-2]] = innerImage.split("/")[-1].split(".")[0]
+
+		innerDict["usedImgs"] = setupDict
+		generatedList.append(innerDict)
+
+	# save to json
+	timestamp = datetime.datetime.now()
+	date = timestamp.strftime("%Y-%m-%d")
+	path = "generatedConfigs/" + imageName + " - " + date + ".json"
+	with open(path, "w") as f:
+		json.dump(generatedList, f, indent=4)
 
 
 # create all possible images
@@ -204,10 +232,12 @@ def createAllImgs(orderedImages, possibleImages):
 			innerList = []
 			for innerImage in image:
 				innerList.append(innerImage["path"])
-				innerList.append(id)
+			innerList.append(id)
 			id = id + 1
 			imagesArr.append(innerList)
 		
+		saveImgSetupJson(imagesArr)
+
 		# implement some multiprocessing to speed up things
 		with concurrent.futures.ProcessPoolExecutor() as executor:
 			res = executor.map(layerAndSaveImg, imagesArr)	
