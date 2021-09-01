@@ -148,6 +148,7 @@ def main():
 		while int(imageAmount) > 0 and int(imageAmount) <= possibleImages:
 			# start timer
 			start_time = time.time()
+			createRandomImgs(imageAmount, orderedImages, weightedList)
 			break
 		else:
 			print("You are either choosing more images than possible or an impossible number!")
@@ -161,7 +162,7 @@ def main():
 
 
 # create a specific amount of random nonduplicate images
-def createRandomImgs(imageAmount, orderedImages):
+def createRandomImgs(imageAmount, orderedImages, weightedList = False):
 	imageAmount = int(imageAmount)
 	imagesArr = []
 	id = 0
@@ -169,8 +170,16 @@ def createRandomImgs(imageAmount, orderedImages):
 	while len(imagesArr) < imageAmount:
 		innerList = []	
 		# iterate over all layers and add their path and id
-		for layer in orderedImages:
-			randomImg = random.choice(layer["images"])
+		for i in range(len(orderedImages)):
+			if weightedList == False:
+				randomImg = random.choice(orderedImages[i]["images"])
+			else:
+				orderedWeights = [] 
+				for key, val in weightedList[i].items():
+					if key != "name" and key != "imageCount":
+						orderedWeights.append(int(val))
+				orderedWeights = tuple(orderedWeights)
+				randomImg = random.choices(orderedImages[i]["images"], weights = orderedWeights, k = 1)[0]
 			innerList.append(randomImg["path"])
 		innerList.append(id)
 		id = id + 1
