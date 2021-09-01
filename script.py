@@ -1,3 +1,5 @@
+# Image Generator
+# usage: python3 script.py, python3 script.py /path-to-config
 from PIL import Image, ExifTags
 from os import walk, listdir
 from os.path import isfile
@@ -30,18 +32,22 @@ def main():
 	# create some basic variables
 	layers = len(dirnames)
 	images = createImgList(dirnames, providedPath)
-	possibilities = len(images[0]["images"])
-
 	# ** equals to the power (possibilities^layers)
-	possibleImages = possibilities ** layers
+	# possibleImages = possibilities ** layers
+	# if not every layer has same amount the calc does not work
+	# instead we are multiplicating all the imageamounts
+	possibleImages = 1
+	for cat in images:
+		possibleImages = possibleImages * len(cat["images"])	
+
 
 	# give user some output
-	print("Index:")
-	print("layers: {} \npossibilities: {} \npossibleImages: {}\n".format(layers, possibilities, possibleImages ))
+	print("Index:\nlayers: {} \npossibleImages: {}\n".format(layers, possibleImages ))
 
-	# only do this actions if no configuration is provided or changes in layering were made
-	if configLoaded == False or len(loadConfig["layerOrdering"]) != layers:
+	# only do this actions if no configuration is provided or changes in layerinng or the images were made
+	if configLoaded == False or len(loadConfig["layerOrdering"]) != layers or loadConfig["possibleImages"] != possibleImages:
 		layerOrdering = setupLayerOrdering(layers, dirnames)
+		weightedList = createWeightedList(images)
 	else:
 		reOrder = input("Would you like to reorder your layers? (y/N) ")
 		if reOrder.lower() == "y" or reOrder.lower() == "yes":
@@ -49,7 +55,13 @@ def main():
 		else:
 			layerOrdering = loadConfig["layerOrdering"]
 
-	print("Layer list: {}\n".format(layerOrdering))
+		reWeight = input("Would you like to change the weights on your images? (y/N) ")
+		if reWeight.lower() == "y" or reWeight.lower() == "yes":
+			weightedList = createWeightedList(images)
+		else:
+			weightedList = loadConfig["weightedList"]
+
+	print("Layer order: {}\n".format(layerOrdering))
 
 	orderedImages = orderArray(layerOrdering, images)
 
@@ -78,33 +90,50 @@ def main():
 			"desc": imageDesc,
 			"url": baseUrl,
 			"path": providedPath,
-			"layerOrdering": layerOrdering
+			"layerOrdering": layerOrdering,
+			"weightedList": weightedList,
+			"possibleImages": possibleImages
 		})
 
-	randomOrAll = input("Generate all possible images (0) or specific amount of random non-duplicates (1)? ")		
+	print("--- 0 --- Generate All possible images")
+	print("--- 1 --- Generate specific amount of random non-duplicates")
+	print("--- 2 --- Generate specific amount of random non-duplicates based on a weighted list")
+	randomOrAll = input("Which option would you like to choose? ")		
 
 	# setup var for time measurement
 	global start_time
 
-	while int(randomOrAll) != 0 and int(randomOrAll) != 1:
-		randomOrAll = input("Generate all possible images (0) or specific amount of random non-duplicates (1)? ")		
+	while int(randomOrAll) < 0 and int(randomOrAll) > 2:
+		randomOrAll = input("Which option would you like to choose? ")		
 	if int(randomOrAll) == 0:
 		# start timer
 		start_time = time.time()
 		# create all possible combinations of the image
-		createAllImgs(orderedImages, imageName, possibleImages)
+		createAllImgs(orderedImages, possibleImages)
 		
-	else:
+	if int(randomOrAll) == 1:
 		# create only a given amount of random images
 		imageAmount = input("How many images would you like to generate? ")
 		while int(imageAmount) > 0 and int(imageAmount) <= possibleImages:
 			# start timer
 			start_time = time.time()
-			createRandomImgs(imageAmount, orderedImages, imageName)
+			createRandomImgs(imageAmount, orderedImages)
 			break
 		else:
 			print("You are either choosing more images than possible or an impossible number!")
 			imageAmount = input("How many images would you like to generate? ")
+
+	if int(randomOrAll) == 2:
+		# create images based on a weighted list
+		imageAmount = input("How many images would you like to generate? ")
+		while int(imageAmount) > 0 and int(imageAmount) <= possibleImages:
+			# start timer
+			start_time = time.time()
+			break
+		else:
+			print("You are either choosing more images than possible or an impossible number!")
+			imageAmount = input("How many images would you like to generate? ")
+
 	end_time = time.time()
 	print("Total executiontime: --- {}s ---".format(round(end_time - start_time), 2))
 
@@ -113,7 +142,7 @@ def main():
 
 
 # create a specific amount of random nonduplicate images
-def createRandomImgs(imageAmount, orderedImages, imageName):
+def createRandomImgs(imageAmount, orderedImages):
 	imageAmount = int(imageAmount)
 	imagesArr = []
 	id = 0
@@ -138,7 +167,7 @@ def createRandomImgs(imageAmount, orderedImages, imageName):
 
 
 # create all possible images
-def createAllImgs(orderedImages, imageName, possibleImages):
+def createAllImgs(orderedImages, possibleImages):
 	print("There are {} possible images. This might take a while".format(possibleImages))
 	allLists = []
 	for layer in orderedImages:	
@@ -167,6 +196,22 @@ def createAllImgs(orderedImages, imageName, possibleImages):
 	else:
 		print("Something went wrong!")
 	print("{} images were generated to folder generatedImgs".format(max(list(res)) + 1))
+
+# create a weighted list for the choosing of the images
+def createWeightedList(images):
+	# iterate over categories, show user the images and ask for a weight
+	print("Create weights for your images. You will need to pass one weight per image separately (element_weight / sum of all weights).")
+	weightList = [] 
+	for cat in images:
+		print("Category: {}".format(cat["name"]))
+		print("Images: {}".format(len(cat["images"])))
+		tempDict = {}
+		for image in cat["images"]:
+			print(image["path"])
+			tempDict[image["path"]] = input("Give this image a weight: ")
+		weightList.append(tempDict)
+	return weightList
+
 
 # create ordered array
 def orderArray(layerOrdering, images):
