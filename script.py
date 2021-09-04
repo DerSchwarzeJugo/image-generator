@@ -205,13 +205,15 @@ def createRandomImgs(imageAmount, orderedImages, weightedList = False):
 # save generated imgArr to json output
 def saveImgSetupJson(imgArr):
 	global imageName
+	global imageDesc
 	# make order in arr
 	generatedList = []
 	for image in imgArr:
 		id = image[len(image) - 1]
 		innerDict = {
 			"name": imageName + " #" + str(id),
-			"imgId": id, 
+			"imgId": id,
+			"desc": imageDesc
 		}
 		setupDict = {}
 		for innerImage in image:
