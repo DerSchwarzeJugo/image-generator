@@ -1,7 +1,7 @@
 # Create Metadata based on the images (1 json file per image)
 # usage python3 metadata.py
 
-import json, datetime, concurrent.futures
+import json, datetime, concurrent.futures, urllib.parse
 from os.path import isfile
 
 
@@ -55,7 +55,7 @@ def manipulateData(data, ipfsHash):
 		obj = {
 			"name": item["name"],
 			"description": item["desc"],
-			"image": "ipfs://" + ipfsHash + "/" + item["name"] + ".png",
+			"image": "ipfs://" + ipfsHash + "/" + urllib.parse.quote(item["name"]) + ".png",
 			"attributes": []
 		}
 		for key, val in item["usedImgs"].items():
