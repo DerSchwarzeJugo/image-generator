@@ -165,11 +165,10 @@ def main():
 def createRandomImgs(imageAmount, orderedImages, weightedList = False):
 	imageAmount = int(imageAmount)
 	imagesArr = []
-	id = 0
 	# iterate as long until imagesArr has same amount as wished by user
 	while len(imagesArr) < imageAmount:
 		innerList = []	
-		# iterate over all layers and add their path and id
+		# iterate over all layers and add their path
 		for i in range(len(orderedImages)):
 			if weightedList == False:
 				randomImg = random.choice(orderedImages[i]["images"])
@@ -181,9 +180,18 @@ def createRandomImgs(imageAmount, orderedImages, weightedList = False):
 				orderedWeights = tuple(orderedWeights)
 				randomImg = random.choices(orderedImages[i]["images"], weights = orderedWeights, k = 1)[0]
 			innerList.append(randomImg["path"])
-		innerList.append(id)
-		id = id + 1
+		# innerList.append(id)
+		# id = id + 1
 		imagesArr.append(innerList)
+		# make the array unique, no duplicates
+		imagesArr = [list(x) for x in set(tuple(x) for x in imagesArr)]
+
+
+	# add id to every generated image
+	id = 0
+	for el in imagesArr:
+		el.append(id)
+		id = id + 1
 
 	saveImgSetupJson(imagesArr)
 
